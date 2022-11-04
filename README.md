@@ -1,3 +1,4 @@
+![image](https://github.com/Baray44/SQL_Practice/blob/master/stepik_logo.png)
 # Практика по курсу <a href="https://stepik.org/course/63054/info">«Интерактивный тренажёр по SQL»</a> (stepik.org)
 
 ## Содержание
