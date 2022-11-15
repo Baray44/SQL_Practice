@@ -60,3 +60,73 @@ GROUP BY a.name_author
 HAVING SUM(b.amount) < 10 OR SUM(b.amount) IS NULL
 ORDER BY 'Количество';
 
+/*  Вывести в алфавитном порядке всех авторов, которые пишут только в одном жанре. 
+    Поскольку у нас в таблицах так занесены данные, что у каждого автора книги только в одном жанре,  для этого запроса внесем изменения в таблицу book. 
+    Пусть у нас  книга Есенина «Черный человек» относится к жанру «Роман», а книга Булгакова «Белая гвардия» к «Приключениям» (эти изменения в таблицы уже внесены).
+   +------------------+
+   | name_author      |
+   +------------------+
+   | Достоевский Ф.М. |
+   | Пастернак Б.Л.   |
+   +------------------+ */
+-- 1 variant
+SELECT name_author
+FROM (SELECT name_author, genre_id
+      FROM book
+      JOIN author ON book.author_id = author.author_id
+      GROUP BY book.author_id, book.genre_id) in_query
+GROUP BY name_author
+HAVING COUNT(genre_id) = 1
+ORDER BY name_author;
+-- 2 variant
+SELECT name_author FROM author 
+WHERE author_id IN(SELECT DISTINCT author_id
+				   FROM book
+				   GROUP BY author_id
+				   HAVING COUNT(DISTINCT genre_id) = 1);
+
+/* Вывести информацию о книгах (название книги, фамилию и инициалы автора, название 
+   жанра, цену и количество экземпляров книг), написанных в самых популярных жанрах, 
+   в отсортированном в алфавитном порядке по названию книг виде. Самым популярным 
+   считать жанр, общее количество экземпляров книг которого на складе максимально.
+   +-----------------------+------------------+------------+--------+--------+
+   | title                 | name_author      | name_genre | price  | amount |
+   +-----------------------+------------------+------------+--------+--------+
+   | Белая гвардия         | Булгаков М.А.    | Роман      | 540.50 | 5      |
+   | Братья Карамазовы     | Достоевский Ф.М. | Роман      | 799.01 | 3      |
+   | Игрок                 | Достоевский Ф.М. | Роман      | 480.50 | 10     |
+   | Идиот                 | Достоевский Ф.М. | Роман      | 460.00 | 10     |
+   | Лирика                | Пастернак Б.Л.   | Поэзия     | 518.99 | 10     |
+   | Мастер и Маргарита    | Булгаков М.А.    | Роман      | 670.99 | 3      |
+   | Стихотворения и поэмы | Есенин С.А.      | Поэзия     | 650.00 | 15     |
+   | Черный человек        | Есенин С.А.      | Поэзия     | 570.20 | 6      |
+   +-----------------------+------------------+------------+--------+--------+ */
+-- 1 variant
+SELECT title, name_author, name_genre, price, amount
+FROM book
+JOIN author ON book.author_id = author.author_id
+JOIN genre ON book.genre_id = genre.genre_id
+WHERE book.genre_id IN (SELECT genre_id FROM 
+    (SELECT genre_id, SUM(amount) AS sum_amount
+     FROM book
+     GROUP BY genre_id) AS query1
+WHERE sum_amount = (SELECT MAX(sum_amount)
+     FROM
+    (SELECT genre_id, SUM(amount) AS sum_amount
+     FROM book
+     GROUP BY genre_id) AS query2))
+ORDER BY title;
+-- 2 variant
+SELECT title, name_author, name_genre, price, amount
+FROM author
+INNER JOIN book 
+ON author.author_id = book.author_id
+INNER JOIN genre 
+ON book.genre_id = genre.genre_id
+WHERE book.genre_id IN 
+    (SELECT genre_id
+     FROM book
+     GROUP BY genre_id
+     HAVING SUM(amount) >= ALL(SELECT SUM(amount) FROM book GROUP BY genre_id)
+     )
+ORDER BY title;
