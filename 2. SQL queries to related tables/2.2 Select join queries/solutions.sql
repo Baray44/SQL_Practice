@@ -130,3 +130,38 @@ WHERE book.genre_id IN
      HAVING SUM(amount) >= ALL(SELECT SUM(amount) FROM book GROUP BY genre_id)
      )
 ORDER BY title;
+
+/* Если в таблицах supply и book есть одинаковые книги, которые имеют равную цену, вывести их название и автора, а также посчитать общее 
+   количество экземпляров книг в таблицах supply и book, столбцы назвать Название, Автор и Количество. */
+SELECT b.title AS Название, s.author AS Автор, (b.amount + s.amount) AS Количество
+FROM book b
+JOIN author a USING(author_id)
+JOIN supply s ON a.name_author = s.author
+WHERE b.title = s.title AND b.price = s.price;
+
+/* Произвольное задание.
+Разослать литературу в любое количество городов (не только три). Остаток от деления книг между городами уезжает в Москву.
+Для столицы устанавливаются цены на 10% выше первоначальных, с округлением вверх до ближайшего кратного 50 рублям и вычетом одной копейки.
+Сортировка по названию города, автору и названию книги (по алфавиту): */
+SELECT
+    name_city AS Город,
+    name_author AS Автор,
+    title AS Название,
+    name_genre AS Жанр,
+    IF(name_city = 'Москва',
+       ROUND(CEIL(price * 1.1 / 50) * 50, 2) - 0.01,
+       PRICE) AS Цена,
+    IF(name_city = 'Москва',
+       amount DIV (SELECT COUNT(*) FROM city) + amount % (SELECT COUNT(*) FROM city),
+       amount DIV (SELECT COUNT(*) FROM city)) AS Количество
+FROM
+    book
+    JOIN author USING (author_id)
+    JOIN genre  USING (genre_id)
+    CROSS JOIN city
+WHERE
+    IF(name_city = 'Москва',
+       amount DIV (SELECT COUNT(*) FROM city) + amount % (SELECT COUNT(*) FROM city),
+       amount DIV (SELECT COUNT(*) FROM city)) > 0
+ORDER BY
+    Город, Автор, Название;
