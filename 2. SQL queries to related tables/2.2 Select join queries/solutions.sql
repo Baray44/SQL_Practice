@@ -152,16 +152,13 @@ SELECT
        ROUND(CEIL(price * 1.1 / 50) * 50, 2) - 0.01,
        PRICE) AS Цена,
     IF(name_city = 'Москва',
-       amount DIV (SELECT COUNT(*) FROM city) + amount % (SELECT COUNT(*) FROM city),
-       amount DIV (SELECT COUNT(*) FROM city)) AS Количество
-FROM
-    book
-    JOIN author USING (author_id)
-    JOIN genre  USING (genre_id)
-    CROSS JOIN city
-WHERE
-    IF(name_city = 'Москва',
-       amount DIV (SELECT COUNT(*) FROM city) + amount % (SELECT COUNT(*) FROM city),
-       amount DIV (SELECT COUNT(*) FROM city)) > 0
-ORDER BY
-    Город, Автор, Название;
+       amount DIV(SELECT COUNT(*) FROM city) + amount % (SELECT COUNT(*) FROM city),
+       amount DIV(SELECT COUNT(*) FROM city)) AS Количество
+FROM book
+JOIN author USING (author_id)
+JOIN genre USING (genre_id)
+CROSS JOIN city
+WHERE IF(name_city = 'Москва',
+         amount DIV(SELECT COUNT(*) FROM city) + amount % (SELECT COUNT(*) FROM city),
+         amount DIV(SELECT COUNT(*) FROM city)) > 0
+ORDER BY Город, Автор, Название;
