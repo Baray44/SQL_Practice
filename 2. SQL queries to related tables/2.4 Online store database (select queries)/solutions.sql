@@ -44,3 +44,48 @@ JOIN buy USING (buy_id)
 JOIN `client` USING (client_id)
 GROUP BY buy_id, name_client
 ORDER BY buy_id;
+
+/* Вывести номера заказов (buy_id) и названия этапов, на которых они в данный момент находятся. 
+   Если заказ доставлен –  информацию о нем не выводить. Информацию отсортировать по возрастанию buy_id. */
+SELECT buy_id, name_step
+FROM buy_step
+JOIN step USING (step_id)
+WHERE date_step_beg IS NOT NULL AND date_step_end IS NULL
+ORDER BY buy_id;
+
+/* В таблице city для каждого города указано количество дней, за которые заказ может быть доставлен в этот город 
+   (рассматривается только этап "Транспортировка"). Для тех заказов, которые прошли этап транспортировки, 
+   вывести количество дней за которое заказ реально доставлен в город. А также, если заказ доставлен с опозданием, 
+   указать количество дней задержки, в противном случае вывести 0. В результат включить номер заказа (buy_id), 
+   а также вычисляемые столбцы Количество_дней и Опоздание. Информацию вывести в отсортированном по номеру заказа виде. */
+-- 1 variant (GREATEST)
+SELECT buy_id, DATEDIFF(date_step_end, date_step_beg) AS Количество_дней, GREATEST((DATEDIFF(date_step_end, date_step_beg) - days_delivery), 0) AS Опоздание
+FROM buy_step
+JOIN step USING (step_id)
+JOIN buy USING (buy_id)
+JOIN client USING (client_id)
+JOIN city USING (city_id)
+WHERE name_step = 'Транспортировка'
+AND date_step_beg IS NOT NULL
+AND date_step_end IS NOT NULL
+ORDER BY buy_id;
+-- 2 variant (IF)
+SELECT buy_id, DATEDIFF(date_step_end, date_step_beg) AS Количество_дней, IF (days_delivery < DATEDIFF(date_step_end, date_step_beg), DATEDIFF(date_step_end, date_step_beg) - days_delivery, 0) AS Опоздание
+FROM city INNER JOIN client USING (city_id)
+INNER JOIN buy USING(client_id)
+INNER JOIN buy_step USING(buy_id)
+INNER JOIN step USING(step_id)
+WHERE date_step_end IS NOT NULL and name_step = 'Транспортировка'
+ORDER BY buy_id;
+
+/* Выбрать всех клиентов, которые заказывали книги Достоевского, информацию вывести в отсортированном по алфавиту виде. */
+SELECT DISTINCT name_client
+FROM client
+JOIN buy USING (client_id)
+JOIN buy_book USING (buy_id)
+JOIN book USING (book_id)
+JOIN author USING (author_id)
+WHERE name_author = 'Достоевский Ф.М.'
+ORDER BY name_client;
+
+/* Вывести жанр (или жанры), в котором было заказано больше всего экземпляров книг, указать это количество. Последний столбец назвать Количество. */
